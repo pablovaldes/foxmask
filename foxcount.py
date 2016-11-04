@@ -43,7 +43,7 @@ kernel = np.ones((10,10),np.uint8) # closing
 
 # Iterate though list of masks and count objects
 ### First image
-starti = 5 #4794 #185 820, 420, 1090, 1100
+starti = 0 #4794 #185 820, 420, 1090, 1100
 ### Last image
 stopi = 100
 

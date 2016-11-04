@@ -1,5 +1,6 @@
 
 import csv
+import click
 import sys
 sys.path.append("/usr/local/lib/python2.7/site-packages")
 import os
@@ -79,61 +80,54 @@ date_reg_exp2 = re.compile(
                     '\d{4}[:/]\d{1,2}[:/]\d{1,2}\ \d{1,2}:\d{1,2}:\d{1,2}')
 listtags = []
 
-with exiftool.ExifTool() as et:
-    metadata = et.get_metadata_batch(imglist)
-    #print "meta",metadata
-    #check if EXIF key exist
-    key = 'EXIF:DateTimeOriginal'
-    #print "meta",metadata
-    if key in metadata[0]:
-        print "key found"
-        tags1 = []
-        for y in range(len(metadata)):
-            tag = metadata[y]['EXIF:DateTimeOriginal']
-            #print "tag", tag
-            tags1.append(datetime.fromtimestamp(time.mktime(
-                (time.strptime(tag,"%Y:%m:%d %H:%M:%S")))))
-            #listtags.append(tag)
-            #print listtags
-        listtags.extend(tags1)
-       # listtags.extend(tags1)
-    else:
-        print "key not found, looking in comments"
-        tags1 = []
-        for y in range(len(metadata)):
-            key2 = 'File:Comment'
-            if key2 in metadata[y]:
-                tag2 = date_reg_expAM.findall(metadata[y]['File:Comment'])
-                # account for AM PM, no AM PM if tag2 is empty
-                if tag2 == []:
-                    #print "24h date format detected"
-                    tag2 = date_reg_exp.findall(
-                        metadata[y]['File:Comment'])
-                    tag = ''.join(map(str, tag2))
-                    tags1.append(datetime.fromtimestamp(time.mktime(
-                    (time.strptime(tag,"%Y-%m-%d %H:%M:%S")))))
-                else:
-                    #print "AM/PM date format detected"
-                    tag = ''.join(map(str, tag2))
-                    #print "tag",tag
-                #tag = metadata[y]['File:Comment'][0][0:35]
-                # print "keys",metadata[y].keys()
-                #print "metadata img 1",metadata[0]
-                    tags1.append(datetime.fromtimestamp(time.mktime(
-                        (time.strptime(tag,"%Y-%m-%d %I:%M:%S %p")))))
-                #listtags.append(tag)
-                #print listtags
-            else:
-                #print "Problem with metadata, using FileModifyDate"
-                tag2 = date_reg_exp2.findall(
-                    metadata[y]['File:FileModifyDate'])
-                tag = ''.join(map(str, tag2))
-                tag = datetime.strptime(
-                    tag,"%Y:%m:%d %H:%M:%S").strftime('%Y-%m-%d %H:%M:%S')
+print "test"
+def getmeta(listtags,imglist):
+    with exiftool.ExifTool() as et:
+        metadata = et.get_metadata_batch(imglist)
+        #check if EXIF key exist
+        key = 'EXIF:DateTimeOriginal'
+        if key in metadata[0]:
+            print "key found"
+            tags1 = []
+            for y in range(len(metadata)):
+                tag = metadata[y]['EXIF:DateTimeOriginal']
                 tags1.append(datetime.fromtimestamp(time.mktime(
-                    (time.strptime(tag,"%Y-%m-%d %H:%M:%S")))))
-        listtags.extend(tags1)
-print "DONE Loading Metadata"
+                    (time.strptime(tag,"%Y:%m:%d %H:%M:%S")))))
+            listtags.extend(tags1)
+        else:
+            print "key not found, looking in comments"
+            tags1 = []
+            for y in range(len(metadata)):
+                key2 = 'File:Comment'
+                if key2 in metadata[y]:
+                    tag2 = date_reg_expAM.findall(metadata[y]['File:Comment'])
+                    # account for AM PM, no AM PM if tag2 is empty
+                    if tag2 == []:
+                        print "24h date format detected"
+                        tag2 = date_reg_exp.findall(
+                            metadata[y]['File:Comment'])
+                        tag = ''.join(map(str, tag2))
+                        tags1.append(datetime.fromtimestamp(time.mktime(
+                        (time.strptime(tag,"%Y-%m-%d %H:%M:%S")))))
+                    else:
+                        print "AM/PM date format detected"
+                        tag = ''.join(map(str, tag2))
+                        tags1.append(datetime.fromtimestamp(time.mktime(
+                            (time.strptime(tag,"%Y-%m-%d %I:%M:%S %p")))))
+                else:
+                    print "Problem with metadata, using FileModifyDate"
+                    tag2 = date_reg_exp2.findall(
+                        metadata[y]['File:FileModifyDate'])
+                    tag = ''.join(map(str, tag2))
+                    tag = datetime.strptime(
+                        tag,"%Y:%m:%d %H:%M:%S").strftime('%Y-%m-%d %H:%M:%S')
+                    tags1.append(datetime.fromtimestamp(time.mktime(
+                        (time.strptime(tag,"%Y-%m-%d %H:%M:%S")))))
+            listtags.extend(tags1)
+    print "DONE Loading Metadata"
+    return tags1
+
+getmeta(listtags,imglist)
 
 # sort imglist based on metadatas (listtags)
 imglist = [x for (y,x) in sorted(
@@ -224,7 +218,7 @@ for sequence in range(len(impg)):
         outf = open(os.path.join(paramsdir, 'params.txt'),'w')
         if avgB[0] < 100.0:
             print "low light",avgB
-            outf.write(str(0.001))
+            outf.write(str(0.001)) # 0.001
         else:
             print "high light",avgB
             outf.write(str(0.001)) # 0.0011
@@ -232,7 +226,7 @@ for sequence in range(len(impg)):
         #r = 651.0 / currentFrame.shape[1]
         #dim = (651, int(currentFrame.shape[0] * r ))
         resizimg1 = cv2.resize(
-            currentFrame,(0,0),fx=0.3,fy=0.3)# (0.3 works well)
+           currentFrame,(0,0),fx=0.3,fy=0.3)# (0.3 works well)
         # crop top and bottom image
         #resizimg = resizimg1
         # save resized frame to temp dir
